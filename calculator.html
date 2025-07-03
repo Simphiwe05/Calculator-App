@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <!-- Tailwind CSS CDN for basic utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the calculator */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem; /* Add some padding for smaller screens */
+            box-sizing: border-box;
+        }
+
+        .calculator {
+            background-color: #2d3748; /* Darker gray for calculator body */
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            padding: 1.5rem;
+            max-width: 320px; /* Max width for desktop */
+            width: 100%; /* Full width on smaller screens */
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .screen {
+            width: 100%;
+            height: 60px;
+            background-color: #4a5568; /* Even darker gray for screen */
+            border: none;
+            border-radius: 0.75rem; /* Rounded screen */
+            padding: 0.75rem 1rem;
+            font-size: 2.5rem; /* Larger font size */
+            color: #e2e8f0; /* Light text color */
+            text-align: right;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); /* Inner shadow for depth */
+            overflow: hidden; /* Hide overflow for long numbers */
+            white-space: nowrap; /* Prevent wrapping */
+            text-overflow: ellipsis; /* Add ellipsis for long numbers */
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem; /* Slightly smaller gap */
+        }
+
+        .calculator button {
+            background-color: #4299e1; /* Blue for numbers */
+            color: #ffffff;
+            border: none;
+            border-radius: 0.75rem; /* Rounded buttons */
+            padding: 1.25rem; /* More padding for larger touch targets */
+            font-size: 1.75rem; /* Larger font size */
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Button shadow */
+            display: flex; /* Center content */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calculator button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .calculator button:active {
+            background-color: #2b6cb0; /* Even darker blue on active */
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Specific styles for operator buttons */
+        .calculator button[data-op] {
+            background-color: #f6ad55; /* Orange for operators */
+        }
+
+        .calculator button[data-op]:hover {
+            background-color: #ed8936;
+        }
+
+        .calculator button[data-op]:active {
+            background-color: #dd6b20;
+        }
+
+        /* Specific styles for clear and equals buttons */
+        .calculator button[data-clear] {
+            background-color: #e53e3e; /* Red for clear */
+            grid-column: span 2; /* Make clear button span two columns */
+        }
+
+        .calculator button[data-clear]:hover {
+            background-color: #c53030;
+        }
+
+        .calculator button[data-clear]:active {
+            background-color: #9b2c2c;
+        }
+
+        .calculator button[data-equals] {
+            background-color: #48bb78; /* Green for equals */
+            grid-column: span 2; /* Make equals button span two columns */
+        }
+
+        .calculator button[data-equals]:hover {
+            background-color: #38a169;
+        }
+
+        .calculator button[data-equals]:active {
+            background-color: #2f855a;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 640px) {
+            .calculator {
+                padding: 2rem;
+            }
+            .screen {
+                height: 70px;
+                font-size: 3rem;
+            }
+            .calculator button {
+                padding: 1.5rem;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <input type="text" class="screen" id="display" readonly>
+        <div class="buttons">
+            <!-- Numbers -->
+            <button data-num="7">7</button>
+            <button data-num="8">8</button>
+            <button data-num="9">9</button>
+            <!-- Operators -->
+            <button data-op="/">/</button>
+
+            <button data-num="4">4</button>
+            <button data-num="5">5</button>
+            <button data-num="6">6</button>
+            <button data-op="*">*</button>
+
+            <button data-num="1">1</button>
+            <button data-num="2">2</button>
+            <button data-num="3">3</button>
+            <button data-op="-">-</button>
+
+            <button data-num="0">0</button>
+            <button data-num=".">.</button>
+            <button data-op="+">+</button>
+            <button data-equals="=">=</button>
+
+            <!-- Clear button -->
+            <button data-clear="C">C</button>
+        </div>
+    </div>
+
+    <script>
+        // Get the display element
+        const display = document.getElementById('display');
+        // Get all buttons
+        const buttons = document.querySelectorAll('.calculator button');
+
+        let currentInput = ''; // Stores the current number being entered
+        let operator = null;   // Stores the selected operator
+        let previousInput = ''; // Stores the first operand
+        let awaitingNextInput = false; // Flag to indicate if we're ready for a new number
+
+        // Function to update the display
+        function updateDisplay() {
+            display.value = currentInput || '0'; // Show '0' if currentInput is empty
+        }
+
+        // Function to handle number and decimal button clicks
+        function handleNumber(num) {
+            if (awaitingNextInput) {
+                currentInput = num;
+                awaitingNextInput = false;
+            } else {
+                // Prevent multiple decimals
+                if (num === '.' && currentInput.includes('.')) {
+                    return;
+                }
+                currentInput += num;
+            }
+            updateDisplay();
+        }
+
+        // Function to handle operator button clicks
+        function handleOperator(op) {
+            if (currentInput === '') {
+                // If no number is entered yet, allow changing operator
+                operator = op;
+                return;
+            }
+
+            if (previousInput && operator && !awaitingNextInput) {
+                // If there's a previous calculation pending, perform it first
+                currentInput = String(calculate(previousInput, currentInput, operator));
+                updateDisplay();
+            }
+
+            previousInput = currentInput;
+            operator = op;
+            awaitingNextInput = true; // Ready for the next number
+        }
+
+        // Function to handle the equals button
+        function handleEquals() {
+            if (!previousInput || !operator || currentInput === '') {
+                return; // Nothing to calculate
+            }
+
+            try {
+                currentInput = String(calculate(previousInput, currentInput, operator));
+                updateDisplay();
+                previousInput = ''; // Reset for new calculation
+                operator = null;
+                awaitingNextInput = true; // Ready for a new number after result
+            } catch (error) {
+                display.value = 'Error';
+                currentInput = '';
+                previousInput = '';
+                operator = null;
+                awaitingNextInput = false;
+                console.error("Calculation error:", error);
+            }
+        }
+
+        // Function to handle the clear button
+        function handleClear() {
+            currentInput = '';
+            operator = null;
+            previousInput = '';
+            awaitingNextInput = false;
+            updateDisplay();
+        }
+
+        // Core calculation logic
+        function calculate(num1, num2, op) {
+            const n1 = parseFloat(num1);
+            const n2 = parseFloat(num2);
+
+            if (isNaN(n1) || isNaN(n2)) {
+                throw new Error("Invalid number input");
+            }
+
+            switch (op) {
+                case '+':
+                    return n1 + n2;
+                case '-':
+                    return n1 - n2;
+                case '*':
+                    return n1 * n2;
+                case '/':
+                    if (n2 === 0) {
+                        throw new Error("Cannot divide by zero");
+                    }
+                    return n1 / n2;
+                default:
+                    return n2; // Should not happen
+            }
+        }
+
+        // Add event listeners to all buttons
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.dataset.num) {
+                    handleNumber(button.dataset.num);
+                } else if (button.dataset.op) {
+                    handleOperator(button.dataset.op);
+                } else if (button.dataset.equals) {
+                    handleEquals();
+                } else if (button.dataset.clear) {
+                    handleClear();
+                }
+            });
+        });
+
+        // Initialize display
+        updateDisplay();
+
+        // Optional: Add keyboard support
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+
+            if (/[0-9]/.test(key) || key === '.') {
+                handleNumber(key);
+            } else if (['+', '-', '*', '/'].includes(key)) {
+                handleOperator(key);
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault(); // Prevent default Enter key behavior (e.g., form submission)
+                handleEquals();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                handleClear();
+            } else if (key === 'Backspace') {
+                currentInput = currentInput.slice(0, -1);
+                updateDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
